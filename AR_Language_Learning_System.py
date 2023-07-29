@@ -1,120 +1,113 @@
-import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QVBoxLayout, QWidget, QPushButton
+import tkinter as tk
+from tkinter import messagebox
+import random
+import speech_recognition as sr
+import pyttsx3
+from vpython import *
 
-class MainWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("AR-based Language Learning Assistant")
-        self.setMinimumSize(400, 300)
+# Define a list of languages supported by the system
+supported_languages = ["English", "Spanish", "French"]
 
-        self.central_widget = QWidget()
-        self.setCentralWidget(self.central_widget)
+class LanguageLearningAssistantApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("VR-based Language Learning Assistant")
+        self.create_widgets()
 
-        self.layout = QVBoxLayout()
-        self.central_widget.setLayout(self.layout)
+        # Initialize speech recognition and text-to-speech engines
+        self.recognizer = sr.Recognizer()
+        self.text_to_speech = pyttsx3.init()
 
-        self.create_menu()
+        # Create a 3D scene for the VR-like experience
+        self.scene = canvas(title="VR-based Language Learning Assistant", width=800, height=600)
+        box(pos=vector(0, 0, -2), size=vector(0.5, 0.5, 0.5), color=color.red)
+        
+          # Create a Text widget for the chat-like interface
+        self.chat_text = tk.Text(self.root, wrap=tk.WORD, width=50, height=10)
+        self.chat_text.pack(pady=10)
 
-    def create_menu(self):
-        menu_label = QLabel("Main Menu")
-        self.layout.addWidget(menu_label)
+    def create_widgets(self):
+        self.label_language = tk.Label(self.root, text="Select the language you want to learn:")
+        self.label_language.pack(pady=10)
 
-        # Button for Real-Time Pronunciation and Grammar Feedback
-        pronunciation_button = QPushButton("Real-Time Pronunciation and Grammar Feedback")
-        pronunciation_button.clicked.connect(self.pronunciation_grammar_feedback)
-        self.layout.addWidget(pronunciation_button)
+        # Dropdown menu to select the language
+        self.selected_language = tk.StringVar()
+        self.selected_language.set(supported_languages[0])  # Default selection
+        self.language_menu = tk.OptionMenu(self.root, self.selected_language, *supported_languages)
+        self.language_menu.pack(pady=5)
 
+        self.label_instruction = tk.Label(self.root, text="Pronounce a word or a short phrase:")
+        self.label_instruction.pack(pady=10)
 
-        # Button for Multi-Language Support
-        language_support_button = QPushButton("Select Language")
-        language_support_button.clicked.connect(self.multi_language_support)
-        self.layout.addWidget(language_support_button)
+        self.btn_listen = tk.Button(self.root, text="Listen & Check Pronunciation", command=self.listen_and_assess)
+        self.btn_listen.pack(pady=5)
 
-        # Button for Augmented Reality Integration
-        ar_integration_button = QPushButton("Augmented Reality Integration")
-        ar_integration_button.clicked.connect(self.augmented_reality_integration)
-        self.layout.addWidget(ar_integration_button)
+        self.label_feedback = tk.Label(self.root, text="")
+        self.label_feedback.pack(pady=10)
 
-   
-def pronunciation_grammar_feedback(self):
-    # Initialize speech recognition and language tool
-    recognizer = sr.Recognizer()
-    language_tool = LanguageTool('en-US')  # Replace 'en-US' with the appropriate language code
+        self.label_user_speech = tk.Label(self.root, text="Your Speech:")
+        self.label_user_speech.pack(pady=10)
 
-    # Placeholder code for audio input
-    audio_file = 'path/to/audio/file'  # Replace with the path to the audio file or use microphone input
-    with sr.AudioFile(audio_file) as source:
-        audio = recognizer.record(source)  # Record the audio
+        self.user_speech_text = tk.StringVar()
+        self.label_user_speech_display = tk.Label(self.root, textvariable=self.user_speech_text, wraplength=400, justify="left")
+        self.label_user_speech_display.pack(pady=5)
 
-    # Perform speech recognition
-    try:
-        text = recognizer.recognize_google(audio)
-        print(f"Recognized text: {text}")
+        self.btn_clear = tk.Button(self.root, text="Clear", command=self.clear_user_speech)
+        self.btn_clear.pack(pady=5)
 
-        # Perform grammar checking
-        matches = language_tool.check(text)
-        if matches:
-            print("Grammar errors found:")
-            for error in matches:
-                print(f"- {error}")
+    def listen_and_assess(self):
+        # Get the user's language choice
+        selected_language = self.selected_language.get()
 
-        else:
-            print("No grammar errors found.")
+        # Prompt the user to speak
+        self.text_to_speech.say(f"Please pronounce a word or a short phrase in {selected_language}.")
+        self.text_to_speech.runAndWait()
 
-    except sr.UnknownValueError:
-        print("Speech recognition could not understand audio.")
-    except sr.RequestError as e:
-        print(f"Error occurred during speech recognition: {e}")
+        # Record the user's voice
+        with sr.Microphone() as source:
+            self.recognizer.adjust_for_ambient_noise(source, duration=1)  # Adjust for noise
+            audio = self.recognizer.listen(source)
 
-    def personalized_learning_paths(self):
-        # Placeholder function for Personalized Learning Paths functionality
-        print("Personalized Learning Paths feature is under development.")
+        try:
+            # Convert the recorded audio to text using speech recognition
+            user_input = self.recognizer.recognize_google(audio, language=selected_language.lower())
 
-    def multi_language_support(self):
-    # Supported languages
-    supported_languages = ["English", "Spanish", "French"]  # Add more languages as needed
+            # Provide feedback to the user using random.choice from random module
+            feedback_message = random.choice([
+                f"Great job! Your pronunciation in {selected_language} sounds clear and accurate!",
+                f"Keep practicing! Your pronunciation in {selected_language} is improving!",
+                f"Your pronunciation in {selected_language} needs some more practice."
+            ])
 
-    # Language selection dialog
-    language_dialog = QInputDialog()
-    language_dialog.setComboBoxItems(supported_languages)
-    language_dialog.setWindowTitle("Select Language")
-    language_dialog.setLabelText("Choose a language:")
-    language_dialog.setWindowFlags(Qt.WindowStaysOnTopHint)
+            self.user_speech_text.set(user_input)
+            self.label_feedback.config(text=f"{feedback_message}")
+            self.text_to_speech.say(feedback_message)
+            self.text_to_speech.runAndWait()
 
-    if language_dialog.exec_() == QDialog.Accepted:
-        selected_language = language_dialog.currentText()
-        self.change_language(selected_language)
+            # Update the 3D scene with the user's spoken words
+            sphere(pos=vector(0, 0, -2), radius=0.1, color=color.green, text=user_input)
 
-   def change_language(self, language):
-    # Update the UI elements based on the selected language
-    if language == "English":
-        print("English language selected.")
-        # Update UI labels, button texts, etc. for English language
-    elif language == "Spanish":
-        print("Spanish language selected.")
-        # Update UI labels, button texts, etc. for Spanish language
-    elif language == "French":
-        print("French language selected.")
-        # Update UI labels, button texts, etc. for French language
-    else:
-        print("Unsupported language.")
+        except sr.UnknownValueError:
+            messagebox.showerror("Speech Recognition Error", "Sorry, we couldn't understand your pronunciation. Please try again.")
+        except sr.RequestError:
+            messagebox.showerror("Speech Recognition Error", "Sorry, there was an issue with the speech recognition service. Please try again later.")
 
-    # Perform any additional language-specific logic or operations
+    def clear_user_speech(self):
+        self.user_speech_text.set("")
 
-
-    def augmented_reality_integration(self):
-        # Placeholder function for Augmented Reality Integration functionality
-        print("Augmented Reality Integration feature is under development.")
-
+def show_supported_languages():
+    languages = "\n".join(supported_languages)
+    messagebox.showinfo("Supported Languages", f"The system supports the following languages:\n\n{languages}")
 
 if __name__ == "__main__":
-    app = QApplication(sys.argv)
+    root = tk.Tk()
+    app = LanguageLearningAssistantApp(root)
 
-    # Create an instance of the MainWindow class
-    window = MainWindow()
+    # Adding a menu option for supported languages
+    menubar = tk.Menu(root)
+    options_menu = tk.Menu(menubar, tearoff=0)
+    options_menu.add_command(label="Supported Languages", command=show_supported_languages)
+    menubar.add_cascade(label="Options", menu=options_menu)
+    root.config(menu=menubar)
 
-    # Show the main window
-    window.show()
-
-    # Start the application event loop
-    sys.exit(app.exec_())
+    root.mainloop()
